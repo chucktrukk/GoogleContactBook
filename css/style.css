@@ -1,0 +1,12 @@
+
+.tweet-user-list {
+	display: block;
+	margin-left: 0 rem;
+	list-style: none;
+}
+
+.tweet-user-list li {
+	display: block;
+	text-align: center;
+}
+
