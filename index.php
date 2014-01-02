@@ -55,10 +55,9 @@ if (!$client -> getAccessToken()) {
 		<!-- End Top Bar -->
 		<?php
 		if (isset($auth)) {
-		print "<a class=login style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;' href='$auth'>Connect Using Gmail</a>";
-		} else {
-		print "<a class=logout style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;' href='?logout'>Disconnect Gmail</a>";
-		}
+			print "<div style='text-align: center'><img src='img/logo.PNG' width='700px' height='700px' />
+			<div style='margin-top:50px;margin-bottom: 50px;'><a class=login style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;' href='$auth'>Connect Using Gmail</a></div></div>";
+		} 
 		if ($client -> getAccessToken()) {
 		$req = new Google_HttpRequest("https://www.googleapis.com/oauth2/v1/userinfo?access_token=".$client -> getAccessToken());
 		$val = $client -> getIo() -> authenticatedRequest($req);
@@ -99,7 +98,10 @@ if (!$client -> getAccessToken()) {
 					<div class="button-bar">
 						<ul class="button-group radius" style="width: 100%;">
 							<li style="width: 100%;">
-								<a href="<?php echo $profile["link"]; ?>" style="font-size: 13px;width: 100%" id="logout" class="button tiny">Google +</a>
+								<a href="<?php echo $profile["link"]; ?>" style="width: 100%" id="logout" class="button">Google +</a>
+							</li>
+							<li style="width: 100%;">
+								<a class='button logout' style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;width: 100%;' href='?logout'>Disconnect Gmail</a>
 							</li>
 						</ul>
 					</div>
