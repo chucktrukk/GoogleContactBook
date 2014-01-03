@@ -26,7 +26,7 @@ if (isset($_SESSION['token'])) {
 }
 
 if (!$client -> getAccessToken()) {
-	$authUrl = $client -> createAuthUrl();
+	$auth = $client -> createAuthUrl();
 }
 ?>
 <!doctype html>
@@ -50,9 +50,9 @@ if (!$client -> getAccessToken()) {
 		</nav>
 		<!-- End Top Bar -->
 		<?php
-		if (isset($authUrl)) {
+		if (isset($auth)) {
 			print "<div style='text-align: center'><img src='img/logo.PNG' width='700px' height='700px' />
-			<div style='margin-top:50px;margin-bottom: 50px;'><a class=login style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;' href='$authUrl'>Connect Using Gmail</a></div></div>";
+			<div style='margin-top:50px;margin-bottom: 50px;'><a class=login style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;' href='$auth'>Connect Using Gmail</a></div></div>";
 		}else{
 			//Fetch User Profile	
 			$userinfo = $plus->userinfo->get();
