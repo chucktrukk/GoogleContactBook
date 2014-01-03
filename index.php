@@ -59,7 +59,7 @@ if (!$client -> getAccessToken()) {
 			$_SESSION['token'] = $client -> getAccessToken();
 			
 			//Fetch Contacts information
-			$max_results = 25;
+			$max_results = 200;
 			$req = new Google_HttpRequest("https://www.google.com/m8/feeds/contacts/default/full?max-results=" . $max_results . "&alt=json");
 			$val = $client -> getIo() -> authenticatedRequest($req);
 			$response_as_array = json_decode($val -> getResponseBody(), true);
@@ -68,6 +68,8 @@ if (!$client -> getAccessToken()) {
 			
 			$id = $feed['id'];
 			$author = $feed['author'];
+			
+			 $totalresults = $feed['openSearch$totalResults'];
 	
 			foreach ($author as $obj) {
 				$name = $obj['name']['$t'];
@@ -91,6 +93,9 @@ if (!$client -> getAccessToken()) {
 				<div class="row">
 					<div class="button-bar">
 						<ul class="button-group radius" style="width: 100%;">
+							<li style="width: 100%;text-align: center;margin: 5px;">
+								<h4>Total Contacts: <?php echo $totalresults['$t']; ?></h4> 
+							</li>
 							<li style="width: 100%;">
 								<a href="<?php echo $userinfo["link"]; ?>" style="width: 100%" id="logout" class="button">Google +</a>
 							</li>
@@ -115,7 +120,7 @@ if (!$client -> getAccessToken()) {
 								<div class="radius panel">
 									<div class="row">
 										<div class="columns">
-											<input type="text" placeholder="Search followers" id="filter" />
+											<input type="text" placeholder="Search contacts" id="filter" />
 										</div>
 									</div>
 								</div>
