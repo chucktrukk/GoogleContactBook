@@ -1,38 +1,34 @@
 <?php
-session_start();
 require_once 'lib/google-api-php-client/src/Google_Client.php';
+require_once 'lib/google-api-php-client/src/contrib/Google_Oauth2Service.php';
+require_once 'lib/google-api-php-client/src/contrib/Google_CalendarService.php';
+session_start();
 
 $client = new Google_Client();
-$client -> setApplicationName('GoogleContactBook');
-$client -> setScopes(array("http://www.google.com/m8/feeds/","https://www.googleapis.com/auth/userinfo.profile","https://www.googleapis.com/auth/userinfo.email"));
-// Documentation: http://code.google.com/apis/gdata/docs/2.0/basics.html
-// Visit https://code.google.com/apis/console?api=contacts to generate your
-// oauth2_client_id, oauth2_client_secret, and register your oauth2_redirect_uri.
-// $client->setClientId('insert_your_oauth2_client_id');
-// $client->setClientSecret('insert_your_oauth2_client_secret');
-// $client->setRedirectUri('insert_your_redirect_uri');
-// $client->setDeveloperKey('insert_your_developer_key');
+$client -> setApplicationName("Google Calendar PHP Starter Application");
+$client->setScopes(array('https://www.googleapis.com/auth/userinfo.email','https://www.googleapis.com/auth/userinfo.profile','http://www.google.com/m8/feeds/','https://www.googleapis.com/auth/calendar','https://www.googleapis.com/auth/calendar.readonly'));
+
+$cal = new Google_CalendarService($client);
+$plus = new Google_Oauth2Service($client);
+
+if (isset($_GET['logout'])) {
+	unset($_SESSION['token']);
+}
 
 if (isset($_GET['code'])) {
-	$client -> authenticate();
+	$client -> authenticate($_GET['code']);
 	$_SESSION['token'] = $client -> getAccessToken();
-	$redirect = 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
-	header('Location: ' . filter_var($redirect, FILTER_SANITIZE_URL));
+	header('Location: http://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']);
 }
 
 if (isset($_SESSION['token'])) {
 	$client -> setAccessToken($_SESSION['token']);
 }
 
-if (isset($_REQUEST['logout'])) {
-	unset($_SESSION['token']);
-	$client -> revokeToken();
-}
 if (!$client -> getAccessToken()) {
-	$auth = $client -> createAuthUrl();
+	$authUrl = $client -> createAuthUrl();
 }
 ?>
-
 <!doctype html>
 <!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]-->
 <html class="no-js" lang="en" data-useragent="Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)">
@@ -54,51 +50,49 @@ if (!$client -> getAccessToken()) {
 		</nav>
 		<!-- End Top Bar -->
 		<?php
-		if (isset($auth)) {
+		if (isset($authUrl)) {
 			print "<div style='text-align: center'><img src='img/logo.PNG' width='700px' height='700px' />
-			<div style='margin-top:50px;margin-bottom: 50px;'><a class=login style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;' href='$auth'>Connect Using Gmail</a></div></div>";
-		} 
-		if ($client -> getAccessToken()) {
-		$req = new Google_HttpRequest("https://www.googleapis.com/oauth2/v1/userinfo?access_token=".$client -> getAccessToken());
-		$val = $client -> getIo() -> authenticatedRequest($req);
-		$response = $val -> getResponseBody();
-		$profile = json_decode($response, true);
-		
-		$max_results = 25;
-		$req = new Google_HttpRequest("https://www.google.com/m8/feeds/contacts/default/full?max-results=" . $max_results . "&alt=json");
-		$val = $client -> getIo() -> authenticatedRequest($req);
-		
-		// The contacts api only returns XML responses.
-		//$response = json_encode(simplexml_load_string($val -> getResponseBody()));
-		$response = $val -> getResponseBody();
-		
-		$response_as_array = json_decode($response, true);
-		
-		$feed = $response_as_array['feed'];
-		$entries = $feed['entry'];
-		
-		$id = $feed['id'];
-		$author = $feed['author'];
-
-		foreach ($author as $obj) {
-			$name = $obj['name']['$t'];
-			$email = $obj['email']['$t'];
-		}	
-
-		?>
-
+			<div style='margin-top:50px;margin-bottom: 50px;'><a class=login style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;' href='$authUrl'>Connect Using Gmail</a></div></div>";
+		}else{
+			//Fetch User Profile	
+			$userinfo = $plus->userinfo->get();
+			$_SESSION['token'] = $client -> getAccessToken();
+			
+			//Fetch Contacts information
+			$max_results = 25;
+			$req = new Google_HttpRequest("https://www.google.com/m8/feeds/contacts/default/full?max-results=" . $max_results . "&alt=json");
+			$val = $client -> getIo() -> authenticatedRequest($req);
+			$response_as_array = json_decode($val -> getResponseBody(), true);
+			$feed = $response_as_array['feed'];
+			$entries = $feed['entry'];
+			
+			$id = $feed['id'];
+			$author = $feed['author'];
+	
+			foreach ($author as $obj) {
+				$name = $obj['name']['$t'];
+				$email = $obj['email']['$t'];
+			}	
+			
+			//Fetch Calender data
+			$events = $cal->events;
+			$eventlist=$events->listEvents($email);
+			$events=$eventlist['items'];
+			$_SESSION['token'] = $client -> getAccessToken();
+				
+ 		?>		
 		<div class="row">
 			<div class="large-3 panel columns">
-				<img height="500px" width="500px" src="<?php echo $profile["picture"]; ?>">
+				<img height="500px" width="500px" src="<?php echo $userinfo["picture"]; ?>">
 				<div class="panel" style="text-align: center">
-					<h6><?php echo $profile["name"]; ?></h6>
+					<h6><?php echo $userinfo["name"]; ?></h6>
 				</div>
 				<hr>
 				<div class="row">
 					<div class="button-bar">
 						<ul class="button-group radius" style="width: 100%;">
 							<li style="width: 100%;">
-								<a href="<?php echo $profile["link"]; ?>" style="width: 100%" id="logout" class="button">Google +</a>
+								<a href="<?php echo $userinfo["link"]; ?>" style="width: 100%" id="logout" class="button">Google +</a>
 							</li>
 							<li style="width: 100%;">
 								<a class='button logout' style='background-color:#E32B1D;color:#FFFFFF;padding: 10px;width: 100%;' href='?logout'>Disconnect Gmail</a>
@@ -109,72 +103,129 @@ if (!$client -> getAccessToken()) {
 			</div>
 
 			<div class="large-9 columns">
-
-				<!-- Search Bar -->
-				<div class="row">
-					<div class="large-12 columns">
-						<div class="radius panel">
-							<div class="row">
-								<div class="columns">
-									<input type="text" placeholder="Search followers" id="filter" />
+				<dl class="tabs" data-tab>
+				  <dd class="active"><a href="#ContactsList">Contacts</a></dd>
+				  <dd><a href="#EventList">Event</a></dd>
+				</dl>
+				<div class="tabs-content">
+				  <div class="content active" id="ContactsList">
+				    	<!-- Search Bar -->
+						<div class="row">
+							<div class="large-12 columns">
+								<div class="radius panel">
+									<div class="row">
+										<div class="columns">
+											<input type="text" placeholder="Search followers" id="filter" />
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-				</div>
-				<!-- End Search Bar -->
-
-				<!-- Thumbnails -->
-				<div class="row" style="height: 450px; width:100%; overflow-y:scroll; margin-bottom: 10px;">
-					<ul class="tweet-user-list" >
-						<?php
-						foreach ($entries as $entry) {
-							print "<li>
-							<div class='large-12 columns'>
-							<div class='panel radius'>
-							<div class='row'>
-							<div class='large-4 columns'>
-							<h4>".$entry['title']['$t'] ."</h4>
-							<hr>
-							</div>
-							<div class='large-8 columns' style='text-align: left'>";
-							if (isset($entry['gd$email'])) {
-								$emailentry = $entry['gd$email'];
-								foreach ($emailentry as $emailobj) {
-									print "<div class='row'>
-								<div class='large-3 columns'>
-								Email:
-								</div>
-								<div class='large-9 columns'>".$emailobj['address']."</div>
-								</div>";
+						<!-- End Search Bar -->
+		
+						<!-- Thumbnails -->
+						<div class="row" style="height: 450px; width:100%; overflow-y:scroll; margin-bottom: 10px;">
+							
+							
+							<ul class="tweet-user-list" >
+								<?php
+								foreach ($entries as $entry) {
+									print "<li>
+									<div class='large-12 columns'>
+									<div class='panel radius'>
+									<div class='row'>
+									<div class='large-4 columns'>
+									<h4>".$entry['title']['$t'] ."</h4>
+									<hr>
+									</div>
+									<div class='large-8 columns' style='text-align: left'>";
+									if (isset($entry['gd$email'])) {
+										$emailentry = $entry['gd$email'];
+										foreach ($emailentry as $emailobj) {
+											print "<div class='row'>
+										<div class='large-3 columns'>
+										Email:
+										</div>
+										<div class='large-9 columns'>".$emailobj['address']."</div>
+										</div>";
+										}
+									}
+									if (isset($entry['gd$phoneNumber'])) {
+										$phonenumber = $entry['gd$phoneNumber'];
+										foreach ($phonenumber as $obj) {
+											print "<div class='row'>
+									<div class='large-3 columns'>
+									PhoneNo:
+									</div>
+									<div class='large-9 columns'>".$obj['$t']."</div>
+									</div>";
+										}
+									}
+									print "</div>
+									</div>
+									</div>
+									</div>
+									</li>";
 								}
-							}
-							if (isset($entry['gd$phoneNumber'])) {
-								$phonenumber = $entry['gd$phoneNumber'];
-								foreach ($phonenumber as $obj) {
-									print "<div class='row'>
-							<div class='large-3 columns'>
-							PhoneNo:
-							</div>
-							<div class='large-9 columns'>".$obj['$t']."</div>
-							</div>";
+								?>
+							</ul>
+						</div>
+						<!-- End Thumbnails -->	
+				  </div>
+				  <div class="content" id="EventList">
+				    <!-- Thumbnails -->
+						<div class="row" style="height: 500px; width:100%; overflow-y:scroll; margin-bottom: 10px;">
+							
+							<ul class="tweet-user-list" >
+								<?php
+								foreach ($events as $entry) {
+									print "<li>
+									<div class='large-12 columns'>
+									<div class='panel radius'>
+									<div class='row'>
+									<div class='large-6 columns'>
+									<h4>".$entry['summary'] ."</h4>
+									<hr>
+									<h6>Creator: ".$entry['creator']['displayName'] ."</h6>
+									<h6>Organizer: ".$entry['organizer']['displayName'] ."</h6>
+									<h6>Start : ".$entry['start']['date'] ."</h6>
+									<h6>End: ".$entry['end']['date'] ."</h6>
+									</div>
+									<div class='large-6 columns'><h4>Attendees List</h4><hr><ul>";
+									if (isset($entry['attendees'])) {
+										$attendeesentry = $entry['attendees'];
+										foreach ($attendeesentry as $attendobj) {
+											print "<li style='text-align: left;padding: 5px;margin: 5px;'>
+										".$attendobj['displayName']."
+										</li>";
+										}
+									}
+									print "</ul></div>
+									</div>
+									</div>
+									</div>
+									</li>";
 								}
-							}
-							print "</div>
-							</div>
-							</div>
-							</div>
-							</li>";
-						}
-						?>
-					</ul>
+								?>
+							</ul>
+							
+						</div>
+						<!-- End Thumbnails -->	
+				  </div>
+				  <div class="content" id="panel2-3">
+				    <p>Third panel content goes here...</p>
+				  </div>
+				  <div class="content" id="panel2-4">
+				    <p>Fourth panel content goes here...</p>
+				  </div>
 				</div>
-				<!-- End Thumbnails -->
 
+				
 			</div>
 		</div>
-		<?php $_SESSION['token'] = $client -> getAccessToken();
-		 } ?>
+		<?php
+			}
+		?>
 		<!-- Footer -->
 		<footer class="row">
 			<div class="large-12 columns">
@@ -184,7 +235,12 @@ if (!$client -> getAccessToken()) {
 
 		<script src="js/jquery.js"></script>
 		<script src="js/foundation.min.js"></script>
+		<script src="js/foundation/foundation.tab.js"></script>
 		<script src="js/script.js"></script>
-
+		<script>
+			$(document).foundation();
+			var doc = document.documentElement;
+			doc.setAttribute('data-useragent', navigator.userAgent);
+		</script>
 	</body>
 </html>

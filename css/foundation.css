@@ -2725,7 +2725,12 @@ a.th {
 
 .tabs {
   *zoom: 1;
-  margin-bottom: 0 !important; }
+  margin-bottom: 0 !important; 
+  border-style: solid;
+border-width: 1px;
+border-color: #d9d9d9;
+padding: 5px;
+background: #f2f2f2;}
   .tabs:before, .tabs:after {
     content: " ";
     display: table; }
@@ -2749,7 +2754,10 @@ a.th {
       .tabs dd > a:hover {
         background: #e2e2e2; }
     .tabs dd.active a {
-      background: #fff; }
+    	zoom:1;
+      border-style: solid;
+border-width: 2px;
+border-color: #d9d9d9;}
   .tabs.radius dd:first-child a {
     -moz-border-radius-bottomleft: 3px;
     -moz-border-radius-topleft: 3px;
@@ -2780,7 +2788,7 @@ a.th {
     clear: both; }
   .tabs-content > .content {
     display: none;
-    float: left;
+    /*float: left;*/
     padding: 0.9375rem 0; }
     .tabs-content > .content.active {
       display: block; }
@@ -3018,7 +3026,6 @@ ul,
 ol,
 dl {
   font-size: 1rem;
-  line-height: 1.6;
   margin-bottom: 1.25rem;
   list-style-position: outside;
   font-family: inherit; }
